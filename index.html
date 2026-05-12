@@ -1,1046 +1,233 @@
-    <style>
-        :root {
-            --bg-color: #020205;
-            --accent-primary: #00f2ff;
-            --accent-secondary: #bc00ff;
-            --accent-tertiary: #ff0055;
-            --text-main: #e0e0e0;
-            --text-dim: rgba(224, 224, 224, 0.5);
-            --glass-bg: rgba(10, 10, 20, 0.7);
-            --glass-border: rgba(0, 242, 255, 0.2);
-            --neon-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-            --neon-glow: 0 0 20px rgba(188, 0, 255, 0.3);
-        }
-
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-
-        @keyframes glitch {
-            0% { transform: translate(0); }
-            20% { transform: translate(-2px, 2px); }
-            40% { transform: translate(-2px, -2px); }
-            60% { transform: translate(2px, 2px); }
-            80% { transform: translate(2px, -2px); }
-            100% { transform: translate(0); }
-        }
-
-        @keyframes border-flow {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
-            cursor: crosshair;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Cyber Background */
-        .cyber-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -2;
-            background: 
-                radial-gradient(circle at 10% 10%, rgba(188, 0, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 90% 90%, rgba(0, 242, 255, 0.1) 0%, transparent 50%);
-        }
-
-        .scanlines {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.5) 51%);
-            background-size: 100% 4px;
-            z-index: 1000;
-            pointer-events: none;
-            opacity: 0.1;
-        }
-
-        .grid-overlay {
-            position: fixed;
-            bottom: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            z-index: -1;
-            background-image: 
-                linear-gradient(var(--accent-primary) 1px, transparent 1px),
-                linear-gradient(90deg, var(--accent-primary) 1px, transparent 1px);
-            background-size: 60px 60px;
-            transform: perspective(500px) rotateX(60deg);
-            opacity: 0.1;
-            mask-image: radial-gradient(circle at center, black, transparent 80%);
-        }
-
-        /* --- Optimized Layout System --- */
-        .container {
-            width: 98vw;
-            max-width: 1600px;
-            height: 95vh;
-            display: grid;
-            grid-template-columns: 280px 1fr 360px;
-            grid-template-rows: auto 1fr;
-            gap: 24px;
-            padding: 24px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(40px);
-            border: 1px solid var(--glass-border);
-            position: relative;
-            clip-path: polygon(0 0, 97% 0, 100% 3%, 100% 100%, 3% 100%, 0 97%);
-            overflow: hidden;
-            transition: all 0.5s ease;
-        }
-
-        /* --- Responsive Design System --- */
-        
-        /* Tablet Mode */
-        @media (max-width: 1200px) {
-            .container {
-                grid-template-columns: 240px 1fr;
-                grid-template-rows: auto 1fr auto;
-                height: auto;
-                min-height: 100vh;
-                width: 100vw;
-                padding: 15px;
-                gap: 15px;
-                clip-path: none;
-                overflow-y: auto;
-            }
-            .right-panel {
-                grid-column: 1 / -1;
-                flex-direction: row !important;
-                flex-wrap: wrap;
-                margin-top: 20px;
-            }
-            .right-panel > div { flex: 1; min-width: 300px; }
-        }
-
-        /* Mobile Mode */
-        @media (max-width: 768px) {
-            body { overflow-y: auto; }
-            .container {
-                display: flex;
-                flex-direction: column;
-                height: auto;
-                padding: 10px;
-            }
-            .sidebar {
-                flex-direction: row;
-                overflow-x: auto;
-                padding-bottom: 10px;
-                border-bottom: 1px solid var(--glass-border);
-            }
-            .nav-item {
-                padding: 10px 15px;
-                white-space: nowrap;
-                font-size: 10px;
-                border-left: none;
-                border-bottom: 2px solid transparent;
-            }
-            .nav-item:hover, .nav-item.active {
-                border-left: none;
-                border-bottom: 2px solid var(--accent-primary);
-                padding-left: 15px;
-            }
-            .hero-banner { height: 120px; padding: 20px; }
-            .hero-banner h1 { font-size: 24px; }
-            #time { font-size: 40px; }
-            .auth-card { width: 90%; padding: 25px; }
-            .auth-title { font-size: 20px; }
-        }
-
-        header {
-            grid-column: 1 / -1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 10px 20px 10px;
-            border-bottom: 1px solid var(--glass-border);
-            margin-bottom: 10px;
-        }
-
-        .logo {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 24px;
-            font-weight: 900;
-            letter-spacing: 6px;
-            color: var(--accent-primary);
-            text-transform: uppercase;
-        }
-
-        /* Unified Panel Design */
-        .panel {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--glass-border);
-            padding: 24px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .panel-header {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: var(--accent-primary);
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
-            padding-bottom: 10px;
-        }
-
-        /* Sidebar Navigation */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .nav-item {
-            padding: 16px 20px;
-            background: rgba(255, 255, 255, 0.02);
-            border-left: 3px solid transparent;
-            transition: all 0.3s;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            font-size: 11px;
-            color: var(--text-dim);
-        }
-
-        .nav-item:hover, .nav-item.active {
-            background: rgba(0, 242, 255, 0.08);
-            border-left: 3px solid var(--accent-primary);
-            color: var(--accent-primary);
-            padding-left: 25px;
-        }
-
-        /* Main Workspace */
-        .main-view {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            overflow: hidden;
-        }
-
-        .hero-banner {
-            flex-shrink: 0;
-            height: 160px;
-            background: linear-gradient(135deg, rgba(188, 0, 255, 0.15), rgba(0, 242, 255, 0.05));
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 0 40px;
-            border: 1px solid var(--glass-border);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero-banner h1 {
-            font-size: 36px;
-            font-weight: 900;
-            letter-spacing: -1px;
-            margin-bottom: 5px;
-        }
-
-        /* Right Dashboard Widgets */
-        .right-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            height: 100%;
-        }
-
-        .clock-container {
-            padding: 30px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid var(--accent-primary);
-            text-align: center;
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
-        }
-
-        #time {
-            font-size: 52px;
-            font-weight: 900;
-            font-family: 'Space Grotesk', sans-serif;
-            color: var(--accent-primary);
-            line-height: 1;
-        }
-
-        #time span {
-            font-size: 16px;
-            margin-left: 8px;
-            vertical-align: middle;
-            opacity: 0.6;
-        }
-
-        /* UI Decorative Elements */
-        .corner {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            border: 2px solid var(--accent-primary);
-            pointer-events: none;
-            z-index: 10;
-        }
-        .top-left { top: 0; left: 0; border-right: none; border-bottom: none; }
-        .top-right { top: 0; right: 0; border-left: none; border-bottom: none; }
-        .bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; }
-        .bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; }
-
-        /* Scrollbar Optimization */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { 
-            background: var(--accent-primary);
-            border-radius: 10px;
-            box-shadow: 0 0 10px var(--accent-primary);
-        }
-
-        /* Task Management Styles */
-        .tasks-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 5px;
-            margin-top: 10px;
-        }
-
-        .task-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: slideIn 0.4s ease-out;
-        }
-
-        .task-card:hover {
-            background: rgba(255, 255, 255, 0.06);
-            transform: scale(1.01);
-            border-color: var(--accent-primary);
-        }
-
-        .task-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            box-shadow: 0 0 10px currentColor;
-        }
-
-        .status-dot.status-running { background: var(--accent-primary); color: var(--accent-primary); }
-        .status-dot.status-waiting { background: var(--accent-secondary); color: var(--accent-secondary); }
-        .status-dot.status-completed { background: #00ff88; color: #00ff88; }
-
-        span.status-running { color: #fff; }
-        span.status-waiting { color: var(--text-dim); }
-        span.status-completed { color: #00ff88; text-decoration: line-through; opacity: 0.5; }
-
-        .task-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-task {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            color: #fff;
-            padding: 6px 12px;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-task:hover {
-            background: var(--accent-primary);
-            color: #000;
-        }
-
-        .btn-delete:hover {
-            background: var(--accent-tertiary);
-            color: #fff;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .task-input {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--glass-border);
-            padding: 12px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-        }
-
-        .task-input:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @keyframes fadeOut {
-            from { opacity: 1; transform: scale(1); }
-            to { opacity: 0; transform: scale(0.9); }
-        }
-
-        .removing {
-            animation: fadeOut 0.3s forwards;
-        }
-
-        /* Task Analytics Widget */
-        .analytics-widget {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding: 10px 0;
-        }
-
-        .stat-circle-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            margin-bottom: 10px;
-        }
-
-        .stat-circle {
-            width: 80px;
-            height: 80px;
-            transform: rotate(-90deg);
-        }
-
-        .stat-circle circle {
-            fill: none;
-            stroke-width: 6;
-            stroke-linecap: round;
-        }
-
-        .circle-bg { stroke: rgba(255, 255, 255, 0.05); }
-        .circle-progress {
-            stroke: var(--accent-primary);
-            stroke-dasharray: 226;
-            stroke-dashoffset: 226;
-            transition: stroke-dashoffset 1s ease-out;
-            filter: drop-shadow(0 0 5px var(--accent-primary));
-        }
-
-        .percentage-text {
-            position: absolute;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--accent-primary);
-        }
-
-        .mini-stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            font-family: monospace;
-            color: var(--text-dim);
-        }
-
-        .progress-bar-container {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-            width: 0%;
-            transition: width 1s ease-out;
-            box-shadow: 0 0 10px var(--accent-primary);
-        }
-
-        /* --- Auth System Styles --- */
-        #authSystem {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: var(--bg-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .auth-card {
-            width: 420px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(40px);
-            border: 1px solid var(--glass-border);
-            padding: 40px;
-            position: relative;
-            clip-path: polygon(0 0, 90% 0, 100% 10%, 100% 100%, 10% 100%, 0 90%);
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 242, 255, 0.05);
-            animation: authEntrance 0.8s ease-out;
-        }
-
-        @keyframes authEntrance {
-            from { opacity: 0; transform: translateY(30px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .auth-header {
-            text-align: center;
-            margin-bottom: 35px;
-        }
-
-        .auth-logo {
-            font-size: 12px;
-            color: var(--accent-primary);
-            letter-spacing: 5px;
-            margin-bottom: 10px;
-            opacity: 0.7;
-        }
-
-        .auth-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 28px;
-            font-weight: 900;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            background: linear-gradient(90deg, #fff, var(--accent-primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .auth-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .input-group-auth {
-            position: relative;
-        }
-
-        .auth-input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--glass-border);
-            padding: 16px 20px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.3s;
-            letter-spacing: 1px;
-        }
-
-        .auth-input:focus {
-            border-color: var(--accent-primary);
-            background: rgba(0, 242, 255, 0.05);
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
-        }
-
-        .toggle-pass {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 10px;
-            color: var(--accent-primary);
-            cursor: pointer;
-            font-weight: 800;
-            opacity: 0.5;
-        }
-
-        .toggle-pass:hover { opacity: 1; }
-
-        .auth-btn {
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-            border: none;
-            padding: 18px;
-            color: #000;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            cursor: pointer;
-            transition: all 0.3s;
-            clip-path: polygon(0 0, 95% 0, 100% 25%, 100% 100%, 5% 100%, 0 75%);
-            margin-top: 10px;
-        }
-
-        .auth-btn:hover {
-            filter: brightness(1.2);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 242, 255, 0.3);
-        }
-
-        .auth-footer {
-            margin-top: 25px;
-            text-align: center;
-            font-size: 12px;
-            color: var(--text-dim);
-        }
-
-        .auth-link {
-            color: var(--accent-primary);
-            cursor: pointer;
-            font-weight: 700;
-            margin-left: 5px;
-        }
-
-        .auth-link:hover { text-decoration: underline; }
-
-        /* Notifications */
-        .notify {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            padding: 20px 30px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border-left: 4px solid var(--accent-primary);
-            color: #fff;
-            font-size: 13px;
-            font-family: monospace;
-            z-index: 3000;
-            transform: translateX(120%);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .notify.active { transform: translateX(0); }
-        .notify.error { border-left-color: var(--accent-tertiary); }
-
-        .hidden { display: none !important; }
-        .blur-out { opacity: 0; pointer-events: none; transform: scale(1.1); }
-
-    </style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumora.OS - Futuristic Productivity</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="cyber-bg"></div>
-    <div class="scanlines"></div>
-    <div class="grid-overlay"></div>
-
-    <!-- Auth Layer -->
-    <div id="authSystem">
-        <div class="auth-card" id="loginCard">
-            <div class="auth-header">
-                <div class="auth-logo">LUMORA_CONNECT</div>
-                <h2 class="auth-title">Access_Control</h2>
+    <div class="app-container">
+        <!-- Top Header -->
+        <header>
+            <div class="logo">LUMORA.OS</div>
+            <div class="header-actions">
+                <div class="icon-btn" id="notif-btn">
+                    <i data-lucide="bell" style="width: 20px; height: 20px;"></i>
+                </div>
+                <img src="avatar.png" alt="Profile" class="profile-avatar">
             </div>
-            <form class="auth-form" id="loginForm">
-                <div class="input-group-auth">
-                    <input type="email" class="auth-input" id="loginEmail" placeholder="USER_IDENTIFIER (EMAIL)" required>
-                </div>
-                <div class="input-group-auth">
-                    <input type="password" class="auth-input" id="loginPassword" placeholder="SECURITY_KEY" required>
-                    <span class="toggle-pass" onclick="togglePass('loginPassword')">DECRYPT</span>
-                </div>
-                <button type="submit" class="auth-btn">Initialize_Access</button>
-            </form>
-            <div class="auth-footer">
-                NEW_OPERATOR? <span class="auth-link" onclick="switchView('register')">CREATE_IDENTITY</span>
+        </header>
+
+        <!-- Main Status Card -->
+        <section class="status-section">
+            <div class="status-card">
+                <h2>System Online</h2>
+                <div class="welcome-text">Welcome back, Agent</div>
+                <div class="date-text" id="current-date">May 12, 2026 | 17:40</div>
             </div>
-        </div>
+        </section>
 
-        <div class="auth-card hidden" id="registerCard">
-            <div class="auth-header">
-                <div class="auth-logo">LUMORA_INITIALIZE</div>
-                <h2 class="auth-title">New_Operator</h2>
+        <!-- Task Input -->
+        <section class="task-input-section">
+            <div class="input-wrapper">
+                <input type="text" id="task-input" placeholder="New objective..." autocomplete="off">
             </div>
-            <form class="auth-form" id="registerForm">
-                <div class="input-group-auth">
-                    <input type="text" class="auth-input" id="regUser" placeholder="CODENAME" required>
+            <button class="add-btn" id="add-task">
+                <i data-lucide="plus"></i>
+            </button>
+        </section>
+
+        <!-- Productivity Stats -->
+        <section class="stats-section">
+            <div class="stat-card progress-card">
+                <div class="progress-ring">
+                    <svg width="40" height="40">
+                        <circle cx="20" cy="20" r="16" stroke="rgba(255,255,255,0.1)" stroke-width="4" fill="transparent" />
+                        <circle id="progress-circle" cx="20" cy="20" r="16" stroke="var(--primary-cyan)" stroke-width="4" fill="transparent" 
+                            stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round" />
+                    </svg>
+                    <span class="progress-text">0%</span>
                 </div>
-                <div class="input-group-auth">
-                    <input type="email" class="auth-input" id="regEmail" placeholder="SECURE_EMAIL" required>
-                </div>
-                <div class="input-group-auth">
-                    <input type="password" class="auth-input" id="regPass" placeholder="ENCRYPTION_KEY" required>
-                    <span class="toggle-pass" onclick="togglePass('regPass')">DECRYPT</span>
-                </div>
-                <button type="submit" class="auth-btn">Establish_Identity</button>
-            </form>
-            <div class="auth-footer">
-                EXISTING_USER? <span class="auth-link" onclick="switchView('login')">LOGIN_ACCESS</span>
+                <div class="stat-label">System Progress</div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Notification System -->
-    <div id="notify" class="notify">SYSTEM_LOG: INITIALIZING...</div>
-
-    <!-- Application Dashboard -->
-    <div id="appDashboard" class="hidden">
-        <div class="container">
-            <header>
-                <div class="logo">LUMORA.OS</div>
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <div style="font-family: monospace; font-size: 11px; color: var(--accent-primary); letter-spacing: 2px;">STATUS: SECURE_CONNECTION</div>
-                    <div style="display: flex; align-items: center; gap: 12px; padding: 5px 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);">
-                        <span id="userHandle" style="font-size: 12px; font-weight: 700; color: #fff;">GUEST_USER</span>
-                        <div style="width: 32px; height: 32px; background: var(--accent-secondary); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); cursor: pointer;" onclick="logout()" title="Terminate_Session"></div>
-                    </div>
+        <!-- Task List -->
+        <section class="task-list-section">
+            <div class="section-title">
+                <span>ACTIVE TASKS</span>
+                <i data-lucide="filter" style="width: 16px; height: 16px; cursor: pointer;"></i>
+            </div>
+            <div id="task-list">
+                <!-- Empty State -->
+                <div id="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-dim);">
+                    <i data-lucide="shield-off" style="width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                    <p style="font-size: 0.9rem; letter-spacing: 1px;">NO ACTIVE OBJECTIVES</p>
                 </div>
-            </header>
+            </div>
+        </section>
 
-            <aside class="sidebar panel">
-                <div class="corner top-left"></div>
-                <div class="nav-item active">Core_Dashboard</div>
-                <div class="nav-item">Neural_Network</div>
-                <div class="nav-item">Data_Streams</div>
-                <div class="nav-item">System_Config</div>
-                <div class="nav-item">Terminal_Access</div>
-                <div style="margin-top: auto; font-size: 10px; color: var(--text-dim); opacity: 0.5;">v4.2.0-STABLE</div>
-            </aside>
-
-            <main class="main-view">
-                <div class="hero-banner">
-                    <div class="corner top-right"></div>
-                    <h1 style="font-size: 42px; font-weight: 800; text-transform: uppercase;">System_Online</h1>
-                    <p style="color: var(--accent-primary); letter-spacing: 2px;">Welcome Back, <span id="welcomeName">Agent</span></p>
-                </div>
-
-                <div class="panel" style="flex: 1;">
-                    <div class="panel-header">MY_TASKS</div>
-                    
-                    <div class="input-group">
-                        <input type="text" id="taskInput" class="task-input" placeholder="Enter new task directive...">
-                        <button class="btn-task" onclick="addTask()">Initialize</button>
-                    </div>
-
-                    <div id="taskList" class="tasks-container">
-                        <!-- Tasks will be injected here -->
-                    </div>
-                </div>
-            </main>
-
-            <aside class="right-panel">
-                <div class="clock-container">
-                    <div id="time">00:00:00</div>
-                    <div id="date" style="font-family: monospace; font-size: 12px; margin-top: 10px; letter-spacing: 2px;">2026-05-12</div>
-                </div>
-
-                <div class="panel" style="margin-top: 20px; background: linear-gradient(to bottom, transparent, rgba(0,242,255,0.05));">
-                    <div class="panel-header">System_Messages</div>
-                    <div style="font-size: 11px; font-family: monospace; line-height: 1.6;">
-                        > Neural systems synchronized.<br>
-                        > Intelligence amplification enabled.<br>
-                        > Precision mode activated.<br>
-                        > Secure connection established.<br>
-                        > Designing tomorrow's experience.<br>
-                        > Adaptive interface online.<br>
-                        > Innovation core stable.<br>
-                        > High performance environment ready.<br>
-                        > Welcome to the next era.<br>
-                        <span style="color: var(--accent-primary)">_</span>
-                    </div>
-                </div>
-
-                <div class="panel" style="margin-top: 20px;">
-                    <div class="panel-header">Task_Analytics</div>
-                    <div id="analyticsContent" class="analytics-widget">
-                        <div class="stat-circle-container">
-                            <svg class="stat-circle">
-                                <circle class="circle-bg" cx="40" cy="40" r="36"></circle>
-                                <circle id="circleProgress" class="circle-progress" cx="40" cy="40" r="36"></circle>
-                            </svg>
-                            <div id="percentText" class="percentage-text">0%</div>
-                        </div>
-                        <div class="mini-stats">
-                            <span>COMPLETED: <span id="compCount" style="color: #00ff88;">0</span></span>
-                            <span>PENDING: <span id="pendCount" style="color: var(--accent-secondary);">0</span></span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div id="progressBar" class="progress-bar-fill"></div>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-        </div>
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div class="nav-item active">
+                <i data-lucide="home"></i>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="list-todo"></i>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="timer"></i>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="bar-chart-3"></i>
+            </div>
+            <div class="nav-item">
+                <i data-lucide="settings"></i>
+            </div>
+        </nav>
     </div>
 
     <script>
-        // --- Core State & Constants ---
-        const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 Hours in ms
-        let currentUser = null;
-        let tasks = [];
+        // Initialize Lucide Icons
+        lucide.createIcons();
 
-        // --- Auth & Session Logic ---
-        function checkSession() {
-            const session = JSON.parse(localStorage.getItem('lumora_session'));
-            if (session) {
-                const now = new Date().getTime();
-                if (now - session.timestamp > SESSION_TIMEOUT) {
-                    showNotify('SESSION_EXPIRED: CLEARING_DATA', 'error');
-                    logout();
-                } else {
-                    currentUser = session.user;
-                    enterDashboard();
-                }
-            }
-        }
-
-        function switchView(view) {
-            if (view === 'register') {
-                document.getElementById('loginCard').classList.add('hidden');
-                document.getElementById('registerCard').classList.remove('hidden');
-            } else {
-                document.getElementById('registerCard').classList.add('hidden');
-                document.getElementById('loginCard').classList.remove('hidden');
-            }
-        }
-
-        function togglePass(id) {
-            const input = document.getElementById(id);
-            input.type = input.type === 'password' ? 'text' : 'password';
-        }
-
-        function showNotify(msg, type = 'info') {
-            const n = document.getElementById('notify');
-            n.textContent = msg;
-            n.className = `notify active ${type}`;
-            setTimeout(() => n.classList.remove('active'), 4000);
-        }
-
-        // Registration
-        document.getElementById('registerForm').onsubmit = (e) => {
-            e.preventDefault();
-            const username = document.getElementById('regUser').value;
-            const email = document.getElementById('regEmail').value;
-            const password = document.getElementById('regPass').value;
-
-            let users = JSON.parse(localStorage.getItem('lumora_users') || '[]');
-            if (users.find(u => u.email === email)) {
-                return showNotify('ERROR: IDENTITY_EXISTS', 'error');
-            }
-
-            const newUser = { username, email, password };
-            users.push(newUser);
-            localStorage.setItem('lumora_users', JSON.stringify(users));
-            
-            showNotify('IDENTITY_ESTABLISHED: INITIALIZING...');
-            setTimeout(() => switchView('login'), 1500);
-        };
-
-        // Login
-        document.getElementById('loginForm').onsubmit = (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            const users = JSON.parse(localStorage.getItem('lumora_users') || '[]');
-            const user = users.find(u => u.email === email && u.password === password);
-
-            if (!user) {
-                return showNotify('ACCESS_DENIED: INVALID_CREDENTIALS', 'error');
-            }
-
-            currentUser = user;
-            const session = {
-                user: user,
-                timestamp: new Date().getTime()
-            };
-            localStorage.setItem('lumora_session', JSON.stringify(session));
-            
-            showNotify('AUTHORIZATION_SUCCESSFUL: LOADING_OS...');
-            setTimeout(enterDashboard, 1500);
-        };
-
-        function enterDashboard() {
-            document.getElementById('authSystem').classList.add('blur-out');
-            setTimeout(() => {
-                document.getElementById('authSystem').classList.add('hidden');
-                document.getElementById('appDashboard').classList.remove('hidden');
-                document.getElementById('userHandle').textContent = currentUser.username.toUpperCase();
-                document.getElementById('welcomeName').textContent = currentUser.username;
-                renderTasks();
-            }, 600);
-        }
-
-        function logout() {
-            localStorage.removeItem('lumora_session');
-            location.reload();
-        }
-
-        // --- Dashboard Functionality ---
-        function updateTime() {
+        // Update Date/Time
+        function updateDateTime() {
             const now = new Date();
-            let h = now.getHours();
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12;
-            h = h ? h : 12; 
-            const hStr = String(h).padStart(2, '0');
-            const mStr = String(now.getMinutes()).padStart(2, '0');
-            const sStr = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('time').innerHTML = `${hStr}:${mStr}:${sStr}<span>${ampm}</span>`;
+            const options = { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+            document.getElementById('current-date').innerText = now.toLocaleString('en-US', options).replace(',', ' |');
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        // Task Management
+        const taskInput = document.getElementById('task-input');
+        const addTaskBtn = document.getElementById('add-task');
+        const taskList = document.getElementById('task-list');
+        const progressCircle = document.getElementById('progress-circle');
+        const progressText = document.querySelector('.progress-text');
+
+        let totalTasks = 0;
+        let completedTasks = 0;
+
+        function updateProgress() {
+            const percentage = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+            progressText.innerText = `${percentage}%`;
             
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            document.getElementById('date').textContent = `${year}-${month}-${day}`;
+            // stroke-dasharray is 100
+            const offset = 100 - percentage;
+            progressCircle.style.strokeDashoffset = offset;
         }
 
-        // Task Logic
-        function renderTasks() {
-            const taskList = document.getElementById('taskList');
-            taskList.innerHTML = '';
+        function createTask(text) {
+            const emptyState = document.getElementById('empty-state');
+            if (emptyState) emptyState.remove();
+
+            totalTasks++;
+            updateProgress();
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const taskItem = document.createElement('div');
+            taskItem.className = 'task-item';
+            taskItem.innerHTML = `
+                <div class="task-checkbox"></div>
+                <div class="task-content">
+                    <div class="task-title">${text}</div>
+                    <div class="task-time">${time} - Objective</div>
+                </div>
+                <div class="task-actions">
+                    <button class="delete-task-btn">
+                        <i data-lucide="trash-2" style="width: 18px; height: 18px; color: #ff4b4b;"></i>
+                    </button>
+                </div>
+            `;
+            taskList.prepend(taskItem);
+            lucide.createIcons();
             
-            if (tasks.length === 0) {
-                taskList.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: var(--text-dim); font-family: monospace; letter-spacing: 2px; opacity: 0.5;">
-                        > NO_ACTIVE_TASKS_DETECTED...
-                    </div>
-                `;
-                updateAnalytics();
-                return;
-            }
-            
-            tasks.forEach(task => {
-                const card = document.createElement('div');
-                card.className = `task-card`;
-                card.id = `task-${task.id}`;
-                
-                card.innerHTML = `
-                    <div class="task-info">
-                        <div class="status-dot status-${task.status}"></div>
-                        <span class="status-${task.status}">${task.title}</span>
-                    </div>
-                    <div class="task-actions">
-                        ${task.status !== 'completed' ? `
-                            <button class="btn-task" onclick="completeTask(${task.id})">Complete</button>
-                        ` : ''}
-                        <button class="btn-task btn-delete" onclick="deleteTask(${task.id})">Delete</button>
-                    </div>
-                `;
-                taskList.appendChild(card);
-            });
-            updateAnalytics();
-        }
-
-        function addTask() {
-            const input = document.getElementById('taskInput');
-            if (input.value.trim() === '') return;
-            
-            const newTask = {
-                id: Date.now(),
-                title: input.value,
-                status: 'waiting'
-            };
-            
-            tasks.unshift(newTask);
-            input.value = '';
-            renderTasks();
-        }
-
-        function deleteTask(id) {
-            const element = document.getElementById(`task-${id}`);
-            element.classList.add('removing');
-            setTimeout(() => {
-                tasks = tasks.filter(t => t.id !== id);
-                renderTasks();
-            }, 300);
-        }
-
-        function completeTask(id) {
-            const task = tasks.find(t => t.id === id);
-            if (task) {
-                task.status = 'completed';
-                renderTasks();
-            }
-        }
-
-        function updateAnalytics() {
-            const total = tasks.length;
-            const completed = tasks.filter(t => t.status === 'completed').length;
-            const pending = total - completed;
-            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-            
-            const analyticsContent = document.getElementById('analyticsContent');
-            if (total === 0) {
-                analyticsContent.style.opacity = '0.5';
-                document.getElementById('percentText').textContent = '---';
-                document.getElementById('circleProgress').style.strokeDashoffset = 226;
-                document.getElementById('progressBar').style.width = '0%';
-                document.getElementById('compCount').textContent = '0';
-                document.getElementById('pendCount').textContent = '0';
-                return;
-            }
-
-            analyticsContent.style.opacity = '1';
-            document.getElementById('compCount').textContent = completed;
-            document.getElementById('pendCount').textContent = pending;
-            document.getElementById('percentText').textContent = `${percent}%`;
-            
-            const offset = 226 - (226 * percent) / 100;
-            document.getElementById('circleProgress').style.strokeDashoffset = offset;
-            document.getElementById('progressBar').style.width = `${percent}%`;
-        }
-
-        // --- Initialization ---
-        window.onload = () => {
-            checkSession();
-            setInterval(updateTime, 1000);
-            updateTime();
-
-            // Neon Flickering
-            setInterval(() => {
-                const logo = document.querySelector('.logo');
-                if (Math.random() > 0.95) {
-                    logo.style.textShadow = '0 0 20px var(--accent-tertiary)';
-                    setTimeout(() => logo.style.textShadow = 'none', 50);
+            // Checkbox logic: Toggle Completion
+            taskItem.querySelector('.task-checkbox').addEventListener('click', function() {
+                if (!taskItem.classList.contains('completed')) {
+                    taskItem.classList.add('completed');
+                    completedTasks++;
+                    taskItem.style.opacity = '0.5';
+                    taskItem.style.textDecoration = 'line-through';
+                    taskItem.querySelector('.task-checkbox').innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px; color: var(--primary-cyan);"></i>';
+                } else {
+                    taskItem.classList.remove('completed');
+                    completedTasks--;
+                    taskItem.style.opacity = '1';
+                    taskItem.style.textDecoration = 'none';
+                    taskItem.querySelector('.task-checkbox').innerHTML = '';
                 }
-            }, 100);
-        };
+                lucide.createIcons();
+                updateProgress();
+            });
 
-        // Allow Enter key to add task
-        document.getElementById('taskInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addTask();
+            // Delete logic: Manual removal
+            taskItem.querySelector('.delete-task-btn').addEventListener('click', function() {
+                if (taskItem.classList.contains('completed')) {
+                    completedTasks--;
+                }
+                totalTasks--;
+                
+                taskItem.style.transform = 'translateX(-100px)';
+                taskItem.style.opacity = '0';
+                
+                setTimeout(() => {
+                    taskItem.remove();
+                    updateProgress();
+                    if (taskList.children.length === 0) {
+                        renderEmptyState();
+                        totalTasks = 0;
+                        completedTasks = 0;
+                        updateProgress();
+                    }
+                }, 300);
+            });
+        }
+
+        function renderEmptyState() {
+            taskList.innerHTML = `
+                <div id="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-dim);">
+                    <i data-lucide="shield-off" style="width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                    <p style="font-size: 0.9rem; letter-spacing: 1px;">NO ACTIVE OBJECTIVES</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        addTaskBtn.addEventListener('click', () => {
+            if (taskInput.value.trim() !== "") {
+                createTask(taskInput.value);
+                taskInput.value = "";
+            }
+        });
+
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && taskInput.value.trim() !== "") {
+                createTask(taskInput.value);
+                taskInput.value = "";
+            }
+        });
+
+        // Initialize progress
+        updateProgress();
+
+        // Navigation Switching
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+
+        // Notification Button Ripple Simulation
+        document.getElementById('notif-btn').addEventListener('click', () => {
+            alert('Security Alerts: All Systems Optimal.');
         });
     </script>
 </body>
